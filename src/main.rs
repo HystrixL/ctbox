@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::process::Command;
+use std::{error::Error, process::Command};
 
 const ENTRANCE_IP: &'static str = "wifi.cnu.edu.cn";
 
@@ -130,10 +130,10 @@ fn is_cnu() -> bool {
 }
 
 #[tokio::main]
-async fn main(){
+async fn main() -> Result<(), Box<dyn Error>>{
     if !is_cnu(){
         println!("???");
-        ()
+        return Ok(());
     }
 
     let cli = Cli::parse();
@@ -144,14 +144,14 @@ async fn main(){
                 NetworkAction::Login { account, password } => {
                     println!("your account is {} with password {}", account, password);
 
-                    let res = reqwest::get(format!("https://{ENTRANCE_IP}{LOGIN_NODE}?callback={LOGIN_CALLBACK}&DDDDD={account}&upass={password}&0MKKey={LOGIN_0MKKEY}")).await.unwrap();
+                    let res = reqwest::get(format!("https://{ENTRANCE_IP}{LOGIN_NODE}?callback={LOGIN_CALLBACK}&DDDDD={account}&upass={password}&0MKKey={LOGIN_0MKKEY}")).await?;
                     println!("Status: {}", res.status());
                     println!("Headers:\n{:#?}", res.headers());
 
-                    let body = res.text().await.unwrap();
+                    let body = res.text().await?;
                     let data = body.trim();
                     println!("{}", body);
-                    let v: LoginResult = serde_json::from_str(&data[7..data.len() - 1]).unwrap();
+                    let v: LoginResult = serde_json::from_str(&data[7..data.len() - 1])?;
                     println!("{:?}", v);
                 }
                 NetworkAction::Logout {} => {
@@ -160,15 +160,14 @@ async fn main(){
                     let res = reqwest::get(format!(
                         "https://{ENTRANCE_IP}{LOGOUT_NODE}?callback={LOGOUT_CALLBACK}"
                     ))
-                    .await
-                    .unwrap();
+                    .await?;
                     println!("Status: {}", res.status());
                     println!("Headers:\n{:#?}", res.headers());
 
-                    let body = res.text().await.unwrap();
+                    let body = res.text().await?;
                     let data = body.trim();
                     println!("{}", body);
-                    let v: LogoutResult = serde_json::from_str(&data[7..data.len() - 1]).unwrap();
+                    let v: LogoutResult = serde_json::from_str(&data[7..data.len() - 1])?;
                     println!("{:?}", v);
                 }
                 NetworkAction::Status { account } => {
@@ -179,27 +178,29 @@ async fn main(){
                     println!("Status: {}", res.status());
                     println!("Headers:\n{:#?}", res.headers());
 
-                    let body = res.text().await.unwrap();
+                    let body = res.text().await?;
                     let data = body.trim();
                     println!("{}", body);
                     let v: QueryUserInfoResult =
-                        serde_json::from_str(&data[7..data.len() - 2]).unwrap();
+                        serde_json::from_str(&data[7..data.len() - 2])?;
                     println!("{:?}", v);
 
                     let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_ONLINE_DEVICE_NODE}?callback={QUERY_ONLINE_DEVICE_CALLBACK}&account={account}")).await.unwrap();
                     println!("Status: {}", res.status());
                     println!("Headers:\n{:#?}", res.headers());
 
-                    let body = res.text().await.unwrap();
+                    let body = res.text().await?;
                     let data = body.trim();
                     println!("{}", body);
                     let v: QueryDeviceInfoResult =
-                        serde_json::from_str(&data[7..data.len() - 2]).unwrap();
+                        serde_json::from_str(&data[7..data.len() - 2])?;
                     println!("{:?}", v);
                 }
             },
         }
     }
+
+    Ok(())
 }
 
 // nmcli -g CONNECTION device status
