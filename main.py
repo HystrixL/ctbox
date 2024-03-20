@@ -4,6 +4,7 @@ import requests
 import argparse
 import json
 from importlib.util import find_spec
+import test
 
 ENTRANCE_IP: str = "wifi.cnu.edu.cn"
 
@@ -207,7 +208,7 @@ class QueryDeviceInfoResult:
         self.msg = msg
 
 
-def make_query_device_info_result(d: dict) -> QueryUserInfoResult:
+def make_query_device_info_result(d: dict) -> QueryDeviceInfoResult:
     return QueryDeviceInfoResult(
         d["code"], list(map(make_device_info, d["data"])), d["msg"]
     )
