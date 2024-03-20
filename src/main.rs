@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
+use std::process::Command;
 
 const ENTRANCE_IP: &'static str = "wifi.cnu.edu.cn";
 
@@ -105,8 +106,36 @@ enum NetworkAction {
     },
 }
 
+fn is_cnu() -> bool {
+    #[cfg(target_os = "linux")]
+    let output = Command::new("nmcli")
+        .arg("-g")
+        .arg("NAME")
+        .arg("connection")
+        .arg("show")
+        .arg("--active")
+        .output()
+        .unwrap();
+
+    #[cfg(target_os = "windows")]
+    let output = Command::new("netsh")
+        .arg("WLAN")
+        .arg("show")
+        .arg("interfaces")
+        .output()
+        .unwrap();
+
+    let out = String::from_utf8(output.stdout).unwrap();
+    out.split("\n").any(|v| v == "CNU")
+}
+
 #[tokio::main]
-async fn main() {
+async fn main(){
+    if !is_cnu(){
+        println!("???");
+        ()
+    }
+
     let cli = Cli::parse();
 
     if let Some(action) = cli.sub_action {
@@ -172,3 +201,7 @@ async fn main() {
         }
     }
 }
+
+// nmcli -g CONNECTION device status
+// nmcli --show-secrets connection show W.PIE
+// nmcli -g NAME connection show --active
