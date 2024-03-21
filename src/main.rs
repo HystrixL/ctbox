@@ -100,7 +100,7 @@ enum NetworkAction {
     /// 登出
     Logout {},
     /// 查询
-    Status {
+    Query {
         /// 账号
         #[arg(short, long)]
         account: Option<String>,
@@ -153,7 +153,7 @@ fn is_cnu() -> bool {
         .unwrap();
 
     let out = String::from_utf8(output.stdout).unwrap();
-    out.split("\n").any(|v| v == "CNU")
+    out.split_whitespace().any(|v| v == "CNU")
 }
 
 async fn login(account: &str, password: &str) -> Result<(), Box<dyn Error>> {
@@ -189,28 +189,58 @@ async fn logout() -> Result<(), Box<dyn Error>> {
 
 async fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
     let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_USER_INFO_NODE}?callback={QUERY_USER_INFO_CALLBACK}&account={account}")).await.unwrap();
-    println!("Status: {}", res.status());
-    println!("Headers:\n{:#?}", res.headers());
 
     let body = res.text().await?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\);");
     let data = fuck_cnu_api(&body, &template);
-    let v: QueryUserInfoResult = serde_json::from_str(data)?;
-    println!("{:?}", v);
+    let query_user_info_result: QueryUserInfoResult = serde_json::from_str(data)?;
 
+    println!("{account}的校园网信息");
+    if query_user_info_result.code == "1" {
+        let user_infos = &query_user_info_result.data;
+        println!(
+            "{:<21}{:<11}{:<11}{:<9}",
+            "已用流量", "已用时长", "用户余额", "无感知MAC"
+        );
+
+        for user_info in user_infos {
+            println!(
+                "{:<25}{:<15}{:<14}{:<12}",
+                format!("{}MB", user_info.user_flow),
+                format!("{}Min", user_info.user_time),
+                format!("{}元", user_info.user_money),
+                format!("{}", user_info.mac.as_ref().unwrap_or(&"无".to_string()))
+            );
+        }
+    }
     Ok(())
 }
 
 async fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
     let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_ONLINE_DEVICE_NODE}?callback={QUERY_ONLINE_DEVICE_CALLBACK}&account={account}")).await.unwrap();
-    println!("Status: {}", res.status());
-    println!("Headers:\n{:#?}", res.headers());
 
     let body = res.text().await?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\);");
     let data = fuck_cnu_api(&body, &template);
-    let v: QueryDeviceInfoResult = serde_json::from_str(data)?;
-    println!("{:?}", v);
+    let query_device_info_result: QueryDeviceInfoResult = serde_json::from_str(data)?;
+    if query_device_info_result.code == "1" {
+        let devices = &query_device_info_result.data;
+        println!(
+            "{:<21}{:<10}{:<13}{:<10}",
+            "登录时间", "认证服务器", "设备IP", "设备MAC"
+        );
+
+        for device in devices {
+            println!(
+                "{:<25}{:<15}{:<15}{:<12}",
+                format!("{}", device.login_time),
+                format!("{}", device.bas_id),
+                format!("{}", device.login_ip),
+                format!("{}", device.mac_address)
+            );
+        }
+    }
+
     Ok(())
 }
 
@@ -220,22 +250,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("???");
         return Ok(());
     }
-
-    println!(
-        "{}",
-        fuck_cnu_api(
-            r"
-    dr1005({
-        a
-        b
-        c
-        d
-        e
-    });
-    ",
-            r"dr1005\({}\)"
-        )
-    );
 
     let cli = Cli::parse();
 
@@ -252,11 +266,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                     logout().await?;
                 }
-                NetworkAction::Status { account } => {
+                NetworkAction::Query { account } => {
                     let account = account.unwrap_or("null".to_string());
                     println!("your account is {}", account);
 
                     query_user_info(&account).await?;
+                    println!();
                     query_device_info(&account).await?;
                 }
             },
