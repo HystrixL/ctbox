@@ -158,15 +158,29 @@ fn is_cnu() -> bool {
 
 async fn login(account: &str, password: &str) -> Result<(), Box<dyn Error>> {
     let res = reqwest::get(format!("https://{ENTRANCE_IP}{LOGIN_NODE}?callback={LOGIN_CALLBACK}&DDDDD={account}&upass={password}&0MKKey={LOGIN_0MKKEY}")).await?;
-    println!("Status: {}", res.status());
-    println!("Headers:\n{:#?}", res.headers());
+    if res.status() != 200 {
+        println!(
+            "登录失败。\n状态码: {}\n错误信息: {}",
+            res.status(),
+            res.text().await?
+        );
+        return Ok(());
+    }
 
     let body = res.text().await?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\)");
     let data = fuck_cnu_api(&body, &template);
-    let v: LoginResult = serde_json::from_str(data)?;
-    println!("{:?}", v);
+    let login_result: LoginResult = serde_json::from_str(data)?;
 
+    if login_result.result != 1 {
+        println!("登录失败。\n状态码: {}", login_result.result);
+        return Ok(());
+    }
+
+    println!(
+        "{} 登录成功。\n本机IP: {}\n余额: {}\n设备数量: {}",
+        login_result.uid, "?", "?", "?"
+    );
     Ok(())
 }
 
@@ -175,20 +189,38 @@ async fn logout() -> Result<(), Box<dyn Error>> {
         "https://{ENTRANCE_IP}{LOGOUT_NODE}?callback={LOGOUT_CALLBACK}"
     ))
     .await?;
-    println!("Status: {}", res.status());
-    println!("Headers:\n{:#?}", res.headers());
+    if res.status() != 200 {
+        println!(
+            "登出失败。\n状态码: {}\n错误信息: {}",
+            res.status(),
+            res.text().await?
+        );
+        return Ok(());
+    }
 
     let body = res.text().await?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\)");
     let data = fuck_cnu_api(&body, &template);
-    let v: LogoutResult = serde_json::from_str(data)?;
-    println!("{:?}", v);
-
+    let logout_result: LogoutResult = serde_json::from_str(data)?;
+    if logout_result.result != 1 {
+        println!("登出失败。\n状态码: {}", logout_result.result);
+        return Ok(());
+    }
+    println!("登出成功。");
     Ok(())
 }
 
 async fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
     let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_USER_INFO_NODE}?callback={QUERY_USER_INFO_CALLBACK}&account={account}")).await.unwrap();
+
+    if res.status() != 200 {
+        println!(
+            "用户信息获取失败。\n状态码: {}\n错误信息: {}",
+            res.status(),
+            res.text().await?
+        );
+        return Ok(());
+    }
 
     let body = res.text().await?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\);");
@@ -212,13 +244,26 @@ async fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
                 format!("{}", user_info.mac.as_ref().unwrap_or(&"无".to_string()))
             );
         }
+    } else {
+        println!(
+            "用户信息获取失败。\n状态码: {}\n错误信息: {}",
+            query_user_info_result.code, query_user_info_result.msg
+        );
     }
+
     Ok(())
 }
 
 async fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
     let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_ONLINE_DEVICE_NODE}?callback={QUERY_ONLINE_DEVICE_CALLBACK}&account={account}")).await.unwrap();
-
+    if res.status() != 200 {
+        println!(
+            "设备信息获取失败。\n状态码: {}\n错误信息: {}",
+            res.status(),
+            res.text().await?
+        );
+        return Ok(());
+    }
     let body = res.text().await?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\);");
     let data = fuck_cnu_api(&body, &template);
@@ -239,6 +284,11 @@ async fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
                 format!("{}", device.mac_address)
             );
         }
+    } else {
+        println!(
+            "设备信息获取失败。\n状态码: {}\n错误信息: {}",
+            query_device_info_result.code, query_device_info_result.msg
+        );
     }
 
     Ok(())
@@ -257,19 +307,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match action {
             SubAction::Network { network_action } => match network_action {
                 NetworkAction::Login { account, password } => {
-                    println!("your account is {} with password {}", account, password);
-
                     login(&account, &password).await?;
                 }
                 NetworkAction::Logout {} => {
-                    println!("bye~");
-
                     logout().await?;
                 }
                 NetworkAction::Query { account } => {
                     let account = account.unwrap_or("null".to_string());
-                    println!("your account is {}", account);
-
                     query_user_info(&account).await?;
                     println!();
                     query_device_info(&account).await?;
