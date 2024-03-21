@@ -105,6 +105,11 @@ enum NetworkAction {
         #[arg(short, long)]
         account: Option<String>,
     },
+    Encrypt {
+        #[arg(short, long)]
+        decrypt: bool,
+        source: String,
+    },
 }
 
 /// dr1004\({}\)
@@ -317,6 +322,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     query_user_info(&account).await?;
                     println!();
                     query_device_info(&account).await?;
+                }
+                NetworkAction::Encrypt { decrypt, source } => {
+                    let first_key = "689abcrstu%012345vwxyABCDEFGdefghMNOPQRijklmnpqHIJKSTUVWXYZ";
+                    let second_key = "rsHYZ23tFhiIJjku9abP5QRScABd8DVWXElmGvwK%01xyC4npqMgNOTU6ef";
+                    let (first_key, second_key) = if decrypt {
+                        (second_key, first_key)
+                    } else {
+                        (first_key, second_key)
+                    };
+
+                    let mut result = String::new();
+                    for (index, value) in source.chars().enumerate() {
+                        if let Some(index_in_first) = first_key.chars().position(|x| x == value) {
+                            let mut index_in_first = index_in_first as i32;
+                            index_in_first += if decrypt {
+                                index as i32
+                            } else {
+                                -(index as i32)
+                            };
+                            index_in_first %= first_key.len() as i32;
+                            if index_in_first < 0 {
+                                index_in_first += first_key.len() as i32;
+                            }
+                            let index_in_first = index_in_first as usize;
+                            result.push_str(&second_key[index_in_first..index_in_first + 1]);
+                        } else {
+                            result.push(source.chars().last().unwrap());
+                        }
+                    }
+                    println!("{result}");
                 }
             },
         }
