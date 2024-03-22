@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use std::{error::Error, mem::swap};
 
 const ENTRANCE_IP: &'static str = "wifi.cnu.edu.cn";
 
@@ -218,21 +218,20 @@ fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
 
     println!("{account}的校园网信息");
     if query_user_info_result.code == "1" {
-        let user_infos = &query_user_info_result.data;
         println!(
             "{:<21}{:<11}{:<11}{:<9}",
             "已用流量", "已用时长", "用户余额", "无感知MAC"
         );
 
-        for user_info in user_infos {
+        query_user_info_result.data.iter().for_each(|user_info| {
             println!(
                 "{:<25}{:<15}{:<14}{:<12}",
                 format!("{}MB", user_info.user_flow),
                 format!("{}Min", user_info.user_time),
                 format!("{}元", user_info.user_money),
                 format!("{}", user_info.mac.as_ref().unwrap_or(&"无".to_string()))
-            );
-        }
+            )
+        });
     } else {
         println!(
             "用户信息获取失败。\n状态码: {}\n错误信息: {}",
@@ -258,21 +257,20 @@ fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
     let data = fuck_cnu_api(&body, &template);
     let query_device_info_result: QueryDeviceInfoResult = serde_json::from_str(data)?;
     if query_device_info_result.code == "1" {
-        let devices = &query_device_info_result.data;
         println!(
             "{:<21}{:<10}{:<13}{:<10}",
             "登录时间", "认证服务器", "设备IP", "设备MAC"
         );
 
-        for device in devices {
+        query_device_info_result.data.iter().for_each(|device| {
             println!(
                 "{:<25}{:<15}{:<15}{:<12}",
                 format!("{}", device.login_time),
                 format!("{}", device.bas_id),
                 format!("{}", device.login_ip),
                 format!("{}", device.mac_address)
-            );
-        }
+            )
+        });
     } else {
         println!(
             "设备信息获取失败。\n状态码: {}\n错误信息: {}",
@@ -283,41 +281,41 @@ fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn encrypt(decrypt: bool, source: String) -> String {
-    let first_key = "689abcrstu%012345vwxyABCDEFGdefghMNOPQRijklmnpqHIJKSTUVWXYZ";
-    let second_key = "rsHYZ23tFhiIJjku9abP5QRScABd8DVWXElmGvwK%01xyC4npqMgNOTU6ef";
-    let (first_key, second_key) = if decrypt {
-        (second_key, first_key)
-    } else {
-        (first_key, second_key)
-    };
-
-    let mut result = String::new();
-    for (index, value) in source.chars().enumerate() {
-        if let Some(index_in_first) = first_key.chars().position(|x| x == value) {
-            let mut index_in_first = index_in_first as i32;
-            index_in_first += if decrypt {
-                index as i32
-            } else {
-                -(index as i32)
-            };
-            index_in_first %= first_key.len() as i32;
-            if index_in_first < 0 {
-                index_in_first += first_key.len() as i32;
-            }
-            let index_in_first = index_in_first as usize;
-            result.push_str(&second_key[index_in_first..index_in_first + 1]);
-        } else {
-            result.push(source.chars().last().unwrap());
-        }
+fn encrypt(decrypt: bool, source: &str) -> String {
+    let mut first_key = "689abcrstu%012345vwxyABCDEFGdefghMNOPQRijklmnpqHIJKSTUVWXYZ";
+    let mut second_key = "rsHYZ23tFhiIJjku9abP5QRScABd8DVWXElmGvwK%01xyC4npqMgNOTU6ef";
+    if decrypt {
+        swap(&mut first_key, &mut second_key);
     }
 
-    result
+    source
+        .chars()
+        .enumerate()
+        .map(|(index, value)| {
+            if let Some(index_in_first) = first_key.chars().position(|x| x == value) {
+                let mut index_in_first = index_in_first as i32;
+                index_in_first += if decrypt {
+                    index as i32
+                } else {
+                    -(index as i32)
+                };
+                index_in_first %= first_key.len() as i32;
+                if index_in_first < 0 {
+                    index_in_first += first_key.len() as i32;
+                }
+                let index_in_first = index_in_first as usize;
+
+                second_key.chars().nth(index_in_first).unwrap()
+            } else {
+                source.chars().last().unwrap()
+            }
+        })
+        .collect()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     if !is_cnu() {
-        println!("???");
+        eprintln!("无法访问校园网入口，请检查您及校园网的网络状态。");
         return Ok(());
     }
 
@@ -339,11 +337,32 @@ fn main() -> Result<(), Box<dyn Error>> {
                     query_device_info(&account)?;
                 }
                 NetworkAction::Encrypt { decrypt, source } => {
-                    println!("{}", encrypt(decrypt, source));
+                    println!("{}", encrypt(decrypt, &source));
                 }
             },
         }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encrypt_test() {
+        assert_eq!("2tHxu", encrypt(false, "ctbox"));
+        assert_eq!("XWVGw", encrypt(false, "hhhil"));
+        assert_eq!("jiIJthtt1SDW1sf6", encrypt(false, "20240323.hil_321"));
+        assert_eq!("kIjhJ6tN", encrypt(false, "31415926"));
+    }
+
+    #[test]
+    fn decrypt_test() {
+        assert_eq!("DtyxH", encrypt(true, "ctbox"));
+        assert_eq!("u%02R", encrypt(true, "hhhil"));
+        assert_eq!("clsJp0021wyp1xxY", encrypt(true, "20240323.hil_321"));
+        assert_eq!("rmIpDA0b", encrypt(true, "31415926"));
+    }
 }
