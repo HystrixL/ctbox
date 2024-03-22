@@ -21,11 +21,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - { target: aarch64-unknown-linux-gnu       , os: ubuntu-latest      , system: linux      }
-          - { target: i686-pc-windows-gnu             , os: windows-latest     , system: windows    }
-          - { target: i686-pc-windows-msvc            , os: windows-latest     , system: windows    }
-          - { target: i686-unknown-linux-gnu          , os: ubuntu-latest      , system: linux      }
-          - { target: x86_64-apple-darwin             , os: macos-latest       , system: macos      }
+          # - { target: aarch64-unknown-linux-gnu       , os: ubuntu-latest      , system: linux      }
+          # - { target: i686-pc-windows-gnu             , os: windows-latest     , system: windows    }
+          # - { target: i686-pc-windows-msvc            , os: windows-latest     , system: windows    }
+          # - { target: i686-unknown-linux-gnu          , os: ubuntu-latest      , system: linux      }
+          # - { target: x86_64-apple-darwin             , os: macos-latest       , system: macos      }
           - { target: x86_64-pc-windows-gnu           , os: windows-latest     , system: windows    }
           - { target: x86_64-pc-windows-msvc          , os: windows-latest     , system: windows    }
           - { target: x86_64-unknown-linux-gnu        , os: ubuntu-latest      , system: linux      }
@@ -58,7 +58,7 @@ jobs:
           mkdir archive
           cp LICENSE README.md archive/
           cd archive
-          if [ "${{ matrix.system }}" = "windows" ]; then
+          if [ "${{ matrix.system }}" == "windows" ]; then
             cp "../target/${{ matrix.target }}/release/ctbox.exe" ./
           else
             cp "../target/${{ matrix.target }}/release/ctbox" ./
