@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{error::Error, process::Command};
+use std::error::Error;
 
 const ENTRANCE_IP: &'static str = "wifi.cnu.edu.cn";
 
@@ -139,42 +139,25 @@ fn fuck_cnu_api<'a>(source: &'a str, template: &'a str) -> &'a str {
 }
 
 fn is_cnu() -> bool {
-    #[cfg(target_os = "linux")]
-    let output = Command::new("nmcli")
-        .arg("-g")
-        .arg("NAME")
-        .arg("connection")
-        .arg("show")
-        .arg("--active")
-        .output()
-        .unwrap();
-
-    #[cfg(target_os = "windows")]
-    let output = Command::new("chcp")
-        .arg("65001")
-        .arg("&&")
-        .arg("WLAN")
-        .arg("show")
-        .arg("interfaces")
-        .output()
-        .unwrap();
-
-    let out = String::from_utf8(output.stdout).unwrap();
-    out.split_whitespace().any(|v| v == "CNU")
+    if let Ok(response) = reqwest::blocking::get(format!("https://{ENTRANCE_IP}")) {
+        response.status() == 200
+    } else {
+        false
+    }
 }
 
-async fn login(account: &str, password: &str) -> Result<(), Box<dyn Error>> {
-    let res = reqwest::get(format!("https://{ENTRANCE_IP}{LOGIN_NODE}?callback={LOGIN_CALLBACK}&DDDDD={account}&upass={password}&0MKKey={LOGIN_0MKKEY}")).await?;
+fn login(account: &str, password: &str) -> Result<(), Box<dyn Error>> {
+    let res = reqwest::blocking::get(format!("https://{ENTRANCE_IP}{LOGIN_NODE}?callback={LOGIN_CALLBACK}&DDDDD={account}&upass={password}&0MKKey={LOGIN_0MKKEY}"))?;
     if res.status() != 200 {
         println!(
             "登录失败。\n状态码: {}\n错误信息: {}",
             res.status(),
-            res.text().await?
+            res.text()?
         );
         return Ok(());
     }
 
-    let body = res.text().await?;
+    let body = res.text()?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\)");
     let data = fuck_cnu_api(&body, &template);
     let login_result: LoginResult = serde_json::from_str(data)?;
@@ -191,21 +174,20 @@ async fn login(account: &str, password: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn logout() -> Result<(), Box<dyn Error>> {
-    let res = reqwest::get(format!(
+fn logout() -> Result<(), Box<dyn Error>> {
+    let res = reqwest::blocking::get(format!(
         "https://{ENTRANCE_IP}{LOGOUT_NODE}?callback={LOGOUT_CALLBACK}"
-    ))
-    .await?;
+    ))?;
     if res.status() != 200 {
         println!(
             "登出失败。\n状态码: {}\n错误信息: {}",
             res.status(),
-            res.text().await?
+            res.text()?
         );
         return Ok(());
     }
 
-    let body = res.text().await?;
+    let body = res.text()?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\)");
     let data = fuck_cnu_api(&body, &template);
     let logout_result: LogoutResult = serde_json::from_str(data)?;
@@ -217,19 +199,19 @@ async fn logout() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
-    let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_USER_INFO_NODE}?callback={QUERY_USER_INFO_CALLBACK}&account={account}")).await.unwrap();
+fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
+    let res = reqwest::blocking::get(format!("https://wifi.cnu.edu.cn{QUERY_USER_INFO_NODE}?callback={QUERY_USER_INFO_CALLBACK}&account={account}"))?;
 
     if res.status() != 200 {
         println!(
             "用户信息获取失败。\n状态码: {}\n错误信息: {}",
             res.status(),
-            res.text().await?
+            res.text()?
         );
         return Ok(());
     }
 
-    let body = res.text().await?;
+    let body = res.text()?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\);");
     let data = fuck_cnu_api(&body, &template);
     let query_user_info_result: QueryUserInfoResult = serde_json::from_str(data)?;
@@ -261,17 +243,17 @@ async fn query_user_info(account: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
-    let res = reqwest::get(format!("https://wifi.cnu.edu.cn{QUERY_ONLINE_DEVICE_NODE}?callback={QUERY_ONLINE_DEVICE_CALLBACK}&account={account}")).await.unwrap();
+fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
+    let res = reqwest::blocking::get(format!("https://wifi.cnu.edu.cn{QUERY_ONLINE_DEVICE_NODE}?callback={QUERY_ONLINE_DEVICE_CALLBACK}&account={account}")).unwrap();
     if res.status() != 200 {
         println!(
             "设备信息获取失败。\n状态码: {}\n错误信息: {}",
             res.status(),
-            res.text().await?
+            res.text()?
         );
         return Ok(());
     }
-    let body = res.text().await?;
+    let body = res.text()?;
     let template = format!(r"{QUERY_USER_INFO_CALLBACK}\({{}}\);");
     let data = fuck_cnu_api(&body, &template);
     let query_device_info_result: QueryDeviceInfoResult = serde_json::from_str(data)?;
@@ -333,8 +315,7 @@ fn encrypt(decrypt: bool, source: String) -> String {
     result
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     if !is_cnu() {
         println!("???");
         return Ok(());
@@ -346,16 +327,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match action {
             SubAction::Network { network_action } => match network_action {
                 NetworkAction::Login { account, password } => {
-                    login(&account, &password).await?;
+                    login(&account, &password)?;
                 }
                 NetworkAction::Logout {} => {
-                    logout().await?;
+                    logout()?;
                 }
                 NetworkAction::Query { account } => {
                     let account = account.unwrap_or("null".to_string());
-                    query_user_info(&account).await?;
+                    query_user_info(&account)?;
                     println!();
-                    query_device_info(&account).await?;
+                    query_device_info(&account)?;
                 }
                 NetworkAction::Encrypt { decrypt, source } => {
                     println!("{}", encrypt(decrypt, source));
