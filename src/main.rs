@@ -115,7 +115,7 @@ enum NetworkAction {
 /// dr1004\({}\)
 /// r"(dr1004\()(?P<content>[\s\S]*?)(\))"
 fn generate_regex(template: &str) -> String {
-    let re = Regex::new(r"^(?P<head>.*?)(?P<_>\{\})(?P<tail>.*?)$").unwrap();
+    let re = Regex::new(r"^(?P<head>.*?)(?P<_>\{})(?P<tail>.*?)$").unwrap();
 
     let head = re
         .captures(template)
