@@ -60,10 +60,12 @@ jobs:
           cd archive
           if [ "${{ matrix.system }}" == "windows" ]; then
             cp "../target/${{ matrix.target }}/release/ctbox.exe" ./
+            tar -czf "${{ matrix.target }}.tar.gz" LICENSE README.md ctbox.exe
           else
             cp "../target/${{ matrix.target }}/release/ctbox" ./
-          fi
             tar -czf "${{ matrix.target }}.tar.gz" LICENSE README.md ctbox
+          fi
+            ls
       - name: Upload archive
         uses: actions/upload-artifact@v1
         with:
