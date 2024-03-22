@@ -150,7 +150,9 @@ fn is_cnu() -> bool {
         .unwrap();
 
     #[cfg(target_os = "windows")]
-    let output = Command::new("netsh")
+    let output = Command::new("chcp")
+        .arg("65001")
+        .arg("&&")
         .arg("WLAN")
         .arg("show")
         .arg("interfaces")
@@ -299,6 +301,38 @@ async fn query_device_info(account: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn encrypt(decrypt: bool, source: String) -> String {
+    let first_key = "689abcrstu%012345vwxyABCDEFGdefghMNOPQRijklmnpqHIJKSTUVWXYZ";
+    let second_key = "rsHYZ23tFhiIJjku9abP5QRScABd8DVWXElmGvwK%01xyC4npqMgNOTU6ef";
+    let (first_key, second_key) = if decrypt {
+        (second_key, first_key)
+    } else {
+        (first_key, second_key)
+    };
+
+    let mut result = String::new();
+    for (index, value) in source.chars().enumerate() {
+        if let Some(index_in_first) = first_key.chars().position(|x| x == value) {
+            let mut index_in_first = index_in_first as i32;
+            index_in_first += if decrypt {
+                index as i32
+            } else {
+                -(index as i32)
+            };
+            index_in_first %= first_key.len() as i32;
+            if index_in_first < 0 {
+                index_in_first += first_key.len() as i32;
+            }
+            let index_in_first = index_in_first as usize;
+            result.push_str(&second_key[index_in_first..index_in_first + 1]);
+        } else {
+            result.push(source.chars().last().unwrap());
+        }
+    }
+
+    result
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     if !is_cnu() {
@@ -324,34 +358,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     query_device_info(&account).await?;
                 }
                 NetworkAction::Encrypt { decrypt, source } => {
-                    let first_key = "689abcrstu%012345vwxyABCDEFGdefghMNOPQRijklmnpqHIJKSTUVWXYZ";
-                    let second_key = "rsHYZ23tFhiIJjku9abP5QRScABd8DVWXElmGvwK%01xyC4npqMgNOTU6ef";
-                    let (first_key, second_key) = if decrypt {
-                        (second_key, first_key)
-                    } else {
-                        (first_key, second_key)
-                    };
-
-                    let mut result = String::new();
-                    for (index, value) in source.chars().enumerate() {
-                        if let Some(index_in_first) = first_key.chars().position(|x| x == value) {
-                            let mut index_in_first = index_in_first as i32;
-                            index_in_first += if decrypt {
-                                index as i32
-                            } else {
-                                -(index as i32)
-                            };
-                            index_in_first %= first_key.len() as i32;
-                            if index_in_first < 0 {
-                                index_in_first += first_key.len() as i32;
-                            }
-                            let index_in_first = index_in_first as usize;
-                            result.push_str(&second_key[index_in_first..index_in_first + 1]);
-                        } else {
-                            result.push(source.chars().last().unwrap());
-                        }
-                    }
-                    println!("{result}");
+                    println!("{}", encrypt(decrypt, source));
                 }
             },
         }
