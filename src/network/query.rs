@@ -17,7 +17,7 @@ struct DeviceResponse {
     msg: String,
 }
 
-pub fn query_user_info(account: &str) -> Result<Vec<entity::User>> {
+pub fn query_user_info(account: Option<&str>) -> Result<Vec<entity::User>> {
     const PORT: u16 = 802;
     const NODE: &'static str = "/eportal/portal/custom/loadUserInfo";
     const CALLBACK: &'static str = env!("CARGO_PKG_NAME");
@@ -28,7 +28,7 @@ pub fn query_user_info(account: &str) -> Result<Vec<entity::User>> {
     let url = url
         .query_pairs_mut()
         .append_pair("callback", CALLBACK)
-        .append_pair("account", account)
+        .append_pair("account", account.unwrap_or("null"))
         .finish();
 
     reqwest::blocking::get(url.as_str()).map_or_else(
@@ -62,31 +62,9 @@ pub fn query_user_info(account: &str) -> Result<Vec<entity::User>> {
             }
         },
     )
-
-    /*  if query_user_info_result.code == "1" {
-    //     println!(
-    //         "{:<21}{:<11}{:<11}{:<9}",
-    //         "已用流量", "已用时长", "用户余额", "无感知MAC"
-    //     );
-
-    //     query_user_info_result.data.iter().for_each(|user_info| {
-    //         println!(
-    //             "{:<25}{:<15}{:<14}{:<12}",
-    //             format!("{}MB", user_info.user_flow),
-    //             format!("{}Min", user_info.user_time),
-    //             format!("{}元", user_info.user_money),
-    //             format!("{}", user_info.mac.as_ref().unwrap_or(&"无".to_string()))
-    //         )
-    //     });
-    // } else {
-    //     println!(
-    //         "用户信息获取失败。\n状态码: {}\n错误信息: {}",
-    //         query_user_info_result.code, query_user_info_result.msg
-    //     );
-    */
 }
 
-pub fn query_device_info(account: &str) -> Result<Vec<entity::Device>> {
+pub fn query_device_info(account: Option<&str>) -> Result<Vec<entity::Device>> {
     const PORT: u16 = 802;
     const NODE: &'static str = "/eportal/portal/custom/loadOnlineDevice";
     const CALLBACK: &'static str = env!("CARGO_PKG_NAME");
@@ -97,7 +75,7 @@ pub fn query_device_info(account: &str) -> Result<Vec<entity::Device>> {
     let url = url
         .query_pairs_mut()
         .append_pair("callback", CALLBACK)
-        .append_pair("account", account)
+        .append_pair("account", account.unwrap_or(""))
         .finish();
 
     reqwest::blocking::get(url.as_str()).map_or_else(

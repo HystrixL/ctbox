@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
-    result: i32,
-    v46ip: String,
-    olmac: String,
-    uid: String,
+    pub result: i32,
+    pub v46ip: String,
+    pub olmac: String,
+    pub uid: String,
 }
 
 pub fn login(account: &str, password: &str) -> Result<Response> {
