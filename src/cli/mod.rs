@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use clap::{Parser, Subcommand};
 
 use self::network::LoginWithAccount;
@@ -33,10 +31,10 @@ impl Cli {
         if let Some(action) = cli.sub_action {
             match action {
                 SubAction::Network { network_action } => {
-                    // if !ctbox::network::util::is_cnu() {
-                    //     eprintln!("无法访问校园网入口，请检查您及校园网的网络状态。");
-                    //     exit(0);
-                    // };
+                    if !ctbox::network::util::is_cnu() {
+                        eprintln!("无法访问校园网入口，请检查您及校园网的网络状态。");
+                        return;
+                    };
                     match network_action {
                         network::Command::Login {
                             login_with_account,
