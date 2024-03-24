@@ -37,7 +37,7 @@ impl Cli {
                     };
                     match network_action {
                         network::Command::Login { account, password } => {
-                            network::login(&account, &password, true)
+                            network::login(&account.unwrap(), &password.unwrap(), true)
                         }
                         network::Command::Logout {} => network::logout(),
                         network::Command::Query { account } => {

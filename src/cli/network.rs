@@ -6,11 +6,11 @@ pub enum Command {
     /// 登录
     Login {
         /// 账号
-        #[arg(short, long)]
-        account: String,
+        #[arg(short, long, requires = "password")]
+        account: Option<String>,
         /// 密码
-        #[arg(short, long)]
-        password: String,
+        #[arg(short, long, requires = "account")]
+        password: Option<String>,
     },
     /// 登出
     Logout {},
@@ -20,9 +20,12 @@ pub enum Command {
         #[arg(short, long)]
         account: Option<String>,
     },
+    /// 加解密
     Encrypt {
         #[arg(short, long)]
+        /// 是否为解密模式
         decrypt: bool,
+        /// 源文
         source: String,
     },
 }
@@ -100,6 +103,6 @@ pub fn query_device(account: Option<&str>) {
     }
 }
 
-pub fn encrypt(decrypt: bool, source: &str){
-    println!("{}",network::encrypt::encrypt(decrypt, source));
+pub fn encrypt(decrypt: bool, source: &str) {
+    println!("{}", network::encrypt::encrypt(decrypt, source));
 }

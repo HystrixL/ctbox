@@ -13,9 +13,9 @@ pub struct Response {
 }
 
 pub fn login(account: &str, password: &str) -> Result<Response> {
-    const NODE: &'static str = "/drcom/login";
-    const CALLBACK: &'static str = env!("CARGO_PKG_NAME");
-    const KEY: &'static str = "123456";
+    const NODE: &str = "/drcom/login";
+    const CALLBACK: & str = env!("CARGO_PKG_NAME");
+    const KEY: & str = "123456";
 
     let mut url = url::Url::parse(network::ENTRANCE)
         .unwrap()

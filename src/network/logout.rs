@@ -16,8 +16,8 @@ pub struct Response {
 }
 
 pub fn logout() -> Result<Response> {
-    const NODE: &'static str = "/drcom/logout";
-    const CALLBACK: &'static str = env!("CARGO_PKG_NAME");
+    const NODE: & str = "/drcom/logout";
+    const CALLBACK: & str = env!("CARGO_PKG_NAME");
 
     let mut url = url::Url::parse(network::ENTRANCE)
         .unwrap()

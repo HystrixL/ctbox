@@ -19,8 +19,8 @@ struct DeviceResponse {
 
 pub fn query_user_info(account: Option<&str>) -> Result<Vec<entity::User>> {
     const PORT: u16 = 802;
-    const NODE: &'static str = "/eportal/portal/custom/loadUserInfo";
-    const CALLBACK: &'static str = env!("CARGO_PKG_NAME");
+    const NODE: & str = "/eportal/portal/custom/loadUserInfo";
+    const CALLBACK: & str = env!("CARGO_PKG_NAME");
 
     let mut url = url::Url::parse(network::ENTRANCE).unwrap();
     url.set_port(Some(PORT)).unwrap();
@@ -66,8 +66,8 @@ pub fn query_user_info(account: Option<&str>) -> Result<Vec<entity::User>> {
 
 pub fn query_device_info(account: Option<&str>) -> Result<Vec<entity::Device>> {
     const PORT: u16 = 802;
-    const NODE: &'static str = "/eportal/portal/custom/loadOnlineDevice";
-    const CALLBACK: &'static str = env!("CARGO_PKG_NAME");
+    const NODE: & str = "/eportal/portal/custom/loadOnlineDevice";
+    const CALLBACK: & str = env!("CARGO_PKG_NAME");
 
     let mut url = url::Url::parse(network::ENTRANCE).unwrap();
     url.set_port(Some(PORT)).unwrap();

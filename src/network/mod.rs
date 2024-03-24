@@ -5,4 +5,4 @@ pub mod query;
 pub mod util;
 pub mod encrypt;
 
-const ENTRANCE: &'static str = "https://wifi.cnu.edu.cn";
+const ENTRANCE: &str = "https://wifi.cnu.edu.cn";
