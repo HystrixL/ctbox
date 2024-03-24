@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 
+pub mod config;
+pub mod data;
 pub mod entrance;
 pub mod network;
 

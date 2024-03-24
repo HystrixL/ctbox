@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct User {
+pub struct UserData {
     #[serde(rename(deserialize = "USERFLOW"))]
     pub user_flow: f64,
     #[serde(rename(deserialize = "USERTIME"))]
@@ -13,9 +13,16 @@ pub struct User {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Device {
+pub struct DeviceData {
     pub login_time: String,
     pub bas_id: i32,
     pub login_ip: String,
     pub mac_address: String,
 }
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct User {
+    pub account: String,
+    pub password: String,
+}
+

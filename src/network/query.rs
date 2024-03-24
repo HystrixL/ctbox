@@ -6,18 +6,18 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 struct UserResponse {
     code: String,
-    data: Vec<entity::User>,
+    data: Vec<entity::UserData>,
     msg: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DeviceResponse {
     code: String,
-    data: Vec<entity::Device>,
+    data: Vec<entity::DeviceData>,
     msg: String,
 }
 
-pub fn query_user_info(account: Option<&str>) -> Result<Vec<entity::User>> {
+pub fn query_user_info(account: Option<&str>) -> Result<Vec<entity::UserData>> {
     const PORT: u16 = 802;
     const NODE: &str = "/eportal/portal/custom/loadUserInfo";
     const CALLBACK: &str = env!("CARGO_PKG_NAME");
@@ -61,7 +61,7 @@ pub fn query_user_info(account: Option<&str>) -> Result<Vec<entity::User>> {
     })
 }
 
-pub fn query_device_info(account: Option<&str>) -> Result<Vec<entity::Device>> {
+pub fn query_device_info(account: Option<&str>) -> Result<Vec<entity::DeviceData>> {
     const PORT: u16 = 802;
     const NODE: &str = "/eportal/portal/custom/loadOnlineDevice";
     const CALLBACK: &str = env!("CARGO_PKG_NAME");

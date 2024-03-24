@@ -1,4 +1,5 @@
 use super::{
+    config, data,
     network::{self, LoginWithAccount},
     Cli, SubAction,
 };
@@ -9,6 +10,21 @@ impl Cli {
         let cli = Self::parse();
 
         if let Some(action) = cli.sub_action {
+            let data = match data::read() {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("数据文件读取失败: {}", e);
+                    return;
+                }
+            };
+            let config = match config::read() {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("配置文件读取失败: {}", e);
+                    return;
+                }
+            };
+
             match action {
                 SubAction::Network { network_action } => {
                     if !ctbox::network::util::is_cnu() {

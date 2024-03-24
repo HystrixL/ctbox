@@ -1,5 +1,5 @@
 pub mod encrypt;
-mod entity;
+pub mod entity;
 pub mod login;
 pub mod logout;
 pub mod query;
