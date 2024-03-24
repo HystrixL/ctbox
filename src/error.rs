@@ -1,4 +1,11 @@
 #[derive(Debug)]
+pub enum Kind {
+    Request,
+    Parse,
+    Query,
+}
+
+#[derive(Debug)]
 pub struct Error {
     kind: Kind,
     code: Option<u16>,
@@ -8,7 +15,7 @@ pub struct Error {
 impl Error {
     pub(crate) fn new(kind: Kind) -> Error {
         Error {
-            kind: kind,
+            kind,
             code: None,
             text: None,
         }
@@ -16,33 +23,24 @@ impl Error {
 
     pub(crate) fn with_detail(kind: Kind, code: Option<u16>, text: Option<String>) -> Error {
         Error {
-            kind: kind,
-            code: code,
-            text: text,
+            kind,
+            code,
+            text,
         }
     }
 }
 
-
-impl std::fmt::Display for Error{
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(
+            f,
+            "[ctbox]{:?} with code {} and text {}",
+            self.kind,
+            self.code.map_or("None".to_owned(), |c| c.to_string()),
+            self.text
+                .as_ref()
+                .map_or("None".to_owned(), |c| c.to_string())
+        )
     }
 }
-
-impl std::error::Error for Error{
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
-    }
-
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        self.source()
-    }
-
-}
-#[derive(Debug)]
-pub enum Kind {
-    Request,
-    Parse,
-    Query,
-}
+impl std::error::Error for Error {}

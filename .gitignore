@@ -1,6 +1,7 @@
 .history
 .vscode
 .idea
+.VSCodeCounter
 __pycache__
 
 # Added by cargo
