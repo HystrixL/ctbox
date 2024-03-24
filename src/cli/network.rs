@@ -66,7 +66,7 @@ pub fn login(account: &str, password: &str, with_rich_info: bool) {
                     response.v46ip,
                     user.map_or_else(
                         |_| "unknow".to_string(),
-                        |user| user[0].user_time.to_string()
+                        |user| user[0].user_money.to_string()
                     ),
                     device.map_or_else(|_| "unknow".to_string(), |device| device.len().to_string())
                 )
