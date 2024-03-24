@@ -1,16 +1,14 @@
-use clap::Subcommand;
+use clap::{Args, Subcommand};
 use ctbox::network;
 
 #[derive(Subcommand)]
 pub enum Command {
     /// 登录
     Login {
-        /// 账号
-        #[arg(short, long, requires = "password")]
-        account: Option<String>,
-        /// 密码
-        #[arg(short, long, requires = "account")]
-        password: Option<String>,
+        #[command(flatten)]
+        login_with_account: LoginWithAccount,
+        #[command(flatten)]
+        login_with_label: LoginWithLabel,
     },
     /// 登出
     Logout {},
@@ -28,6 +26,31 @@ pub enum Command {
         /// 源文
         source: String,
     },
+}
+
+#[derive(Args, Debug)]
+#[group(required = false, multiple = true, conflicts_with = "LoginWithLabel")]
+pub struct LoginWithAccount {
+    /// 账号
+    #[arg(short, long, requires = "password")]
+    pub account: Option<String>,
+    /// 密码
+    #[arg(short, long, requires = "account")]
+    pub password: Option<String>,
+    /// 登录并保存账号
+    #[arg(short, long, requires = "account", requires = "password")]
+    pub save: Option<String>,
+    /// 是否保存为默认账号
+    #[arg(short, long, requires = "save")]
+    pub default: bool,
+}
+
+#[derive(Args, Debug)]
+#[group(required = false, multiple = true, conflicts_with = "LoginWithAccount")]
+pub struct LoginWithLabel {
+    /// 读取并登录账号
+    #[arg(short, long)]
+    pub load: Option<String>,
 }
 
 pub fn login(account: &str, password: &str, with_rich_info: bool) {
