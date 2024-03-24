@@ -1,5 +1,7 @@
 use clap::{Args, Subcommand};
-use ctbox::network;
+use ctbox::network::{self, entity::User};
+
+use super::{config, data};
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -53,8 +55,50 @@ pub struct LoginWithLabel {
     pub load: Option<String>,
 }
 
-pub fn login(account: &str, password: &str, with_rich_info: bool) {
-    match network::login::login(account, password) {
+pub fn login(
+    data: &mut data::Network,
+    _config: &config::Network,
+    login_with_account: LoginWithAccount,
+    login_with_label: LoginWithLabel,
+) -> Result<(), String> {
+    if let LoginWithAccount {
+        account: Some(account),
+        password: Some(password),
+        save,
+        default,
+    } = login_with_account
+    {
+        let user = User::new(account, password);
+        do_login(&user, true);
+
+        if let Some(label) = save {
+            data.users.insert(label.clone(), user);
+            if default {
+                data.default = label;
+            }
+        };
+        Ok(())
+    } else if let LoginWithLabel { load: Some(label) } = login_with_label {
+        data.users
+            .contains_key(&label)
+            .then(|| {
+                do_login(&data.users[&label], true);
+                Ok(())
+            })
+            .unwrap_or_else(|| Err("无法找到该标签的登入信息.".to_owned()))
+    } else {
+        data.default
+            .is_empty()
+            .then(|| Err("未设置默认登入信息.".to_owned()))
+            .unwrap_or_else(|| {
+                do_login(&data.users[&data.default], true);
+                Ok(())
+            })
+    }
+}
+
+pub fn do_login(user: &User, with_rich_info: bool) {
+    match network::login::login(&user.account, &user.password) {
         Ok(response) => {
             println!("登入成功!\n");
             if with_rich_info {
@@ -76,14 +120,30 @@ pub fn login(account: &str, password: &str, with_rich_info: bool) {
     }
 }
 
-pub fn logout() {
+pub fn logout(_data: &data::Network, _config: &config::Network) -> Result<(), String> {
+    do_logout();
+    Ok(())
+}
+
+pub fn do_logout() {
     match network::logout::logout() {
         Ok(_) => println!("登出成功."),
         Err(e) => println!("登出失败!\n错误信息: {:?}", e),
     }
 }
 
-pub fn query_user(account: Option<&str>) {
+pub fn query(
+    _data: &data::Network,
+    _config: &config::Network,
+    account: &Option<String>,
+) -> Result<(), String> {
+    do_query_user(account.as_deref());
+    println!();
+    do_query_device(account.as_deref());
+    Ok(())
+}
+
+pub fn do_query_user(account: Option<&str>) {
     match network::query::query_user_info(account) {
         Ok(users) => {
             println!(
@@ -104,7 +164,7 @@ pub fn query_user(account: Option<&str>) {
     }
 }
 
-pub fn query_device(account: Option<&str>) {
+pub fn do_query_device(account: Option<&str>) {
     match network::query::query_device_info(account) {
         Ok(devices) => {
             println!(
@@ -126,6 +186,16 @@ pub fn query_device(account: Option<&str>) {
     }
 }
 
-pub fn encrypt(decrypt: bool, source: &str) {
+pub fn encrypt(
+    _data: &data::Network,
+    _config: &config::Network,
+    decrypt: bool,
+    source: &str,
+) -> Result<(), String> {
+    do_encrypt(decrypt, source);
+    Ok(())
+}
+
+pub fn do_encrypt(decrypt: bool, source: &str) {
     println!("{}", network::encrypt::encrypt(decrypt, source));
 }

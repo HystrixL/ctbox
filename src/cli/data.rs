@@ -24,6 +24,6 @@ pub fn write(root: Root) -> Result<(), ConfyError> {
     confy::store("ctbox", "data", root)
 }
 
-pub fn path() -> PathBuf{
+pub fn path() -> PathBuf {
     confy::get_configuration_file_path("ctbox", "data").unwrap()
 }

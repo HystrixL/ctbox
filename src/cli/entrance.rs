@@ -1,12 +1,9 @@
-use std::default;
-
 use super::{
     config, data,
-    network::{self, LoginWithAccount, LoginWithLabel},
-    Cli, SubAction,
+    network::{self, encrypt, login, logout, query},
+    Cli, SubAction, This,
 };
 use clap::Parser;
-use ctbox::network::entity::User;
 
 impl Cli {
     pub fn process() {
@@ -38,60 +35,31 @@ impl Cli {
                         network::Command::Login {
                             login_with_account,
                             login_with_label,
-                        } => {
-                            if let LoginWithAccount {
-                                account: Some(a),
-                                password: Some(p),
-                                save: s,
-                                default: d,
-                            } = login_with_account
-                            {
-                                network::login(&a, &p, true);
-                                if let Some(label) = s {
-                                    let user = User::new(a, p);
-                                    data.network.users.insert(label.clone(), user);
-                                    if d {
-                                        data.network.default = label;
-                                    }
-                                }
-                            } else if let LoginWithLabel { load: Some(l) } = login_with_label {
-                                if !data.network.users.contains_key(&l) {
-                                    println!("无法找到该标签的登入信息.");
-                                }
-                                network::login(
-                                    &data.network.users[&l].account,
-                                    &data.network.users[&l].password,
-                                    true,
-                                );
-                            } else {
-                                if data.network.default.is_empty() {
-                                    println!("未设置默认登入信息.");
-                                }
-                                network::login(
-                                    &data.network.users[&data.network.default].account,
-                                    &data.network.users[&data.network.default].password,
-                                    true,
-                                );
-                            }
+                        } => login(
+                            &mut data.network,
+                            &config.network,
+                            login_with_account,
+                            login_with_label,
+                        )
+                        .unwrap_or_else(|e| println!("{}", e)),
+                        network::Command::Logout {} => {
+                            logout(&data.network, &config.network).unwrap()
                         }
-                        network::Command::Logout {} => network::logout(),
                         network::Command::Query { account } => {
-                            network::query_user(account.as_deref());
-                            println!();
-                            network::query_device(account.as_deref());
+                            query(&data.network, &config.network, &account).unwrap()
                         }
                         network::Command::Encrypt { decrypt, source } => {
-                            network::encrypt(decrypt, &source);
+                            encrypt(&data.network, &config.network, decrypt, &source).unwrap()
                         }
                     }
                 }
                 SubAction::This { this_action } => match this_action {
-                    super::This::Config {} => println!(
+                    This::Config {} => println!(
                         "PATH:\n{}\nCONTENT:\n{:?}",
                         config::path().to_string_lossy(),
                         config
                     ),
-                    super::This::Data {} => println!(
+                    This::Data {} => println!(
                         "PATH:\n{}\nCONTENT:\n{:?}",
                         data::path().to_string_lossy(),
                         data

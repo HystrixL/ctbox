@@ -22,11 +22,7 @@ impl Error {
     }
 
     pub(crate) fn with_detail(kind: Kind, code: Option<u16>, text: Option<String>) -> Error {
-        Error {
-            kind,
-            code,
-            text,
-        }
+        Error { kind, code, text }
     }
 }
 
