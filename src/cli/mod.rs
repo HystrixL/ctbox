@@ -23,4 +23,14 @@ pub enum SubAction {
         #[command(subcommand)]
         network_action: network::Command,
     },
+    This {
+        #[command(subcommand)]
+        this_action: This,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum This {
+    Config {},
+    Data {},
 }

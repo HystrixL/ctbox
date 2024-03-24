@@ -26,3 +26,8 @@ pub struct User {
     pub password: String,
 }
 
+impl User{
+    pub fn new(account:String,password:String)->Self{
+        User { account, password }
+    }
+}

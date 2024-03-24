@@ -1,7 +1,7 @@
 use confy::ConfyError;
 use ctbox::network::entity::User;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,4 +22,8 @@ pub fn read() -> Result<Root, ConfyError> {
 
 pub fn write(root: Root) -> Result<(), ConfyError> {
     confy::store("ctbox", "data", root)
+}
+
+pub fn path() -> PathBuf{
+    confy::get_configuration_file_path("ctbox", "data").unwrap()
 }
